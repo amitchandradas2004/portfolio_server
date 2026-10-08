@@ -1,29 +1,62 @@
 import { Router } from 'express';
 import {
+  getHero,
+  updateHero,
+  deleteHero,
   getProjects,
   createProject,
+  updateProject,
+  deleteProject,
+  getSkills,
+  createSkill,
+  updateSkill,
+  deleteSkill,
+  getExperiences,
+  createExperience,
+  updateExperience,
+  deleteExperience,
+  getEducation,
+  createEducation,
+  updateEducation,
+  deleteEducation,
   getAdminDashboard,
   getDemoPreview,
 } from '../controllers/portfolio.controller';
-import { authenticateToken } from '../middlewares/auth.middleware';
-import { authorizeRoles, requireAdmin, restrictDemoMutation } from '../middlewares/role.middleware';
-import { UserRole } from '../constants/roles';
 
 const router = Router();
 
-// Public route to view projects
+// HERO SECTION CRUD
+router.get('/hero', getHero);
+router.put('/hero', updateHero);
+router.post('/hero', updateHero);
+router.delete('/hero', deleteHero);
+
+// PROJECTS CRUD
 router.get('/projects', getProjects);
+router.post('/projects', createProject);
+router.put('/projects/:id', updateProject);
+router.delete('/projects/:id', deleteProject);
 
-// Admin-only route to create a project
-router.post('/projects', authenticateToken, requireAdmin, createProject);
+// SKILLS CRUD
+router.get('/skills', getSkills);
+router.post('/skills', createSkill);
+router.put('/skills/:id', updateSkill);
+router.delete('/skills/:id', deleteSkill);
 
-// Admin-only dashboard
-router.get('/admin/dashboard', authenticateToken, requireAdmin, getAdminDashboard);
+// EXPERIENCES CRUD
+router.get('/experiences', getExperiences);
+router.post('/experiences', createExperience);
+router.put('/experiences/:id', updateExperience);
+router.delete('/experiences/:id', deleteExperience);
 
-// Accessible by both ADMIN and DEMO roles
-router.get('/demo/preview', authenticateToken, authorizeRoles(UserRole.ADMIN, UserRole.DEMO), getDemoPreview);
+// EDUCATION CRUD
+router.get('/education', getEducation);
+router.post('/education', createEducation);
+router.put('/education/:id', updateEducation);
+router.delete('/education/:id', deleteEducation);
 
-// Protected mutation endpoint demonstrating DEMO mode restriction
-router.post('/portfolio-action', authenticateToken, authorizeRoles(UserRole.ADMIN, UserRole.DEMO), restrictDemoMutation, createProject);
+// DASHBOARD OVERVIEW ENDPOINTS
+router.get('/admin/dashboard', getAdminDashboard);
+router.get('/demo/preview', getDemoPreview);
 
 export default router;
