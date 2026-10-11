@@ -170,7 +170,7 @@ export const updateProject = async (req: AuthRequest, res: Response): Promise<vo
       res.status(500).json({ success: false, error: 'Database connection not ready' });
       return;
     }
-    const { id } = req.params;
+    const id = req.params.id as string;
     const body = req.body;
     const db = getDb();
     delete body._id;
@@ -195,7 +195,7 @@ export const deleteProject = async (req: AuthRequest, res: Response): Promise<vo
       res.status(500).json({ success: false, error: 'Database connection not ready' });
       return;
     }
-    const { id } = req.params;
+    const id = req.params.id as string;
     const db = getDb();
     await db.collection('projects').deleteOne({ _id: new ObjectId(id) });
     res.status(200).json({
@@ -219,6 +219,20 @@ export const getSkills = async (req: Request, res: Response): Promise<void> => {
     }
     const db = getDb();
     const skillsList = await db.collection('skills').find({}).toArray();
+    
+    const mainDoc = skillsList.find((d: any) => Array.isArray(d.categories)) || skillsList[0];
+    if (mainDoc) {
+      const { _id, ...rest } = mainDoc;
+      res.status(200).json({
+        success: true,
+        count: skillsList.length,
+        data: skillsList,
+        ...rest,
+        _id: _id?.toString(),
+      });
+      return;
+    }
+
     res.status(200).json({
       success: true,
       count: skillsList.length,
@@ -226,6 +240,39 @@ export const getSkills = async (req: Request, res: Response): Promise<void> => {
     });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error?.message || 'Failed to fetch skills' });
+  }
+};
+
+export const updateSkills = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    if (!isDbReady()) {
+      res.status(500).json({ success: false, error: 'Database connection not ready' });
+      return;
+    }
+    const body = req.body;
+    const db = getDb();
+    const existingDoc = ((await db.collection('skills').findOne({})) as any) || {};
+    const updateDoc: any = {
+      badgeText: body.badgeText !== undefined ? body.badgeText : existingDoc.badgeText,
+      title: body.title !== undefined ? body.title : existingDoc.title,
+      highlightedTitle: body.highlightedTitle !== undefined ? body.highlightedTitle : existingDoc.highlightedTitle,
+      description: body.description !== undefined ? body.description : existingDoc.description,
+      learningBadgeText: body.learningBadgeText !== undefined ? body.learningBadgeText : existingDoc.learningBadgeText,
+      learningSectionTitle: body.learningSectionTitle !== undefined ? body.learningSectionTitle : existingDoc.learningSectionTitle,
+      learningSectionSubtitle: body.learningSectionSubtitle !== undefined ? body.learningSectionSubtitle : existingDoc.learningSectionSubtitle,
+      categories: body.categories !== undefined ? body.categories : existingDoc.categories,
+      learningItems: body.learningItems !== undefined ? body.learningItems : existingDoc.learningItems,
+      updatedAt: new Date(),
+    };
+    delete updateDoc._id;
+    await db.collection('skills').updateOne({}, { $set: updateDoc }, { upsert: true });
+    res.status(200).json({
+      success: true,
+      message: 'Skills updated successfully in backend server',
+      skills: updateDoc,
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error?.message || 'Failed to update skills' });
   }
 };
 
@@ -237,6 +284,14 @@ export const createSkill = async (req: AuthRequest, res: Response): Promise<void
     }
     const body = req.body;
     const db = getDb();
+    
+    // If full skills document is provided, update or upsert
+    if (body.categories && Array.isArray(body.categories)) {
+      await db.collection('skills').updateOne({}, { $set: { ...body, updatedAt: new Date() } }, { upsert: true });
+      res.status(201).json({ success: true, message: 'Skills document updated', skills: body });
+      return;
+    }
+
     const result = await db.collection('skills').insertOne({ ...body, createdAt: new Date() });
     res.status(201).json({ success: true, message: 'Skill created', data: { ...body, _id: result.insertedId } });
   } catch (error: any) {
@@ -250,11 +305,22 @@ export const updateSkill = async (req: AuthRequest, res: Response): Promise<void
       res.status(500).json({ success: false, error: 'Database connection not ready' });
       return;
     }
-    const { id } = req.params;
+    const id = req.params.id as string;
     const body = req.body;
     delete body._id;
     const db = getDb();
-    await db.collection('skills').updateOne({ _id: new ObjectId(id) }, { $set: body });
+
+    // Check if id matches an ObjectId or an item within categories
+    try {
+      await db.collection('skills').updateOne({ _id: new ObjectId(id) }, { $set: body });
+    } catch {
+      // If not ObjectId, update matching skill inside categories array
+      await db.collection('skills').updateOne(
+        { "categories.skills.id": id },
+        { $set: { "categories.$[].skills.$[skill]": body } },
+        { arrayFilters: [{ "skill.id": id }] }
+      );
+    }
     res.status(200).json({ success: true, message: 'Skill updated' });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error?.message });
@@ -267,9 +333,26 @@ export const deleteSkill = async (req: AuthRequest, res: Response): Promise<void
       res.status(500).json({ success: false, error: 'Database connection not ready' });
       return;
     }
-    const { id } = req.params;
+    const id = req.params.id as string | undefined;
+    const { reset } = req.query;
     const db = getDb();
-    await db.collection('skills').deleteOne({ _id: new ObjectId(id) });
+
+    if (reset === 'true' || req.query.reset === 'true') {
+      await db.collection('skills').deleteMany({});
+      res.status(200).json({ success: true, message: 'Skills collection reset' });
+      return;
+    }
+
+    if (id) {
+      try {
+        await db.collection('skills').deleteOne({ _id: new ObjectId(id) });
+      } catch {
+        await db.collection('skills').updateOne(
+          {},
+          { $pull: { "categories.$[].skills": { id } } } as any
+        );
+      }
+    }
     res.status(200).json({ success: true, message: 'Skill deleted' });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error?.message });
@@ -315,7 +398,7 @@ export const updateExperience = async (req: AuthRequest, res: Response): Promise
       res.status(500).json({ success: false, error: 'Database connection not ready' });
       return;
     }
-    const { id } = req.params;
+    const id = req.params.id as string;
     const body = req.body;
     delete body._id;
     const db = getDb();
@@ -332,7 +415,7 @@ export const deleteExperience = async (req: AuthRequest, res: Response): Promise
       res.status(500).json({ success: false, error: 'Database connection not ready' });
       return;
     }
-    const { id } = req.params;
+    const id = req.params.id as string;
     const db = getDb();
     await db.collection('experiences').deleteOne({ _id: new ObjectId(id) });
     res.status(200).json({ success: true, message: 'Experience deleted' });
@@ -380,7 +463,7 @@ export const updateEducation = async (req: AuthRequest, res: Response): Promise<
       res.status(500).json({ success: false, error: 'Database connection not ready' });
       return;
     }
-    const { id } = req.params;
+    const id = req.params.id as string;
     const body = req.body;
     delete body._id;
     const db = getDb();
@@ -397,7 +480,7 @@ export const deleteEducation = async (req: AuthRequest, res: Response): Promise<
       res.status(500).json({ success: false, error: 'Database connection not ready' });
       return;
     }
-    const { id } = req.params;
+    const id = req.params.id as string;
     const db = getDb();
     await db.collection('education').deleteOne({ _id: new ObjectId(id) });
     res.status(200).json({ success: true, message: 'Education deleted' });
