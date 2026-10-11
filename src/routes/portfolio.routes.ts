@@ -10,6 +10,7 @@ import {
   getSkills,
   createSkill,
   updateSkill,
+  updateSkills,
   deleteSkill,
   getExperiences,
   createExperience,
@@ -40,7 +41,9 @@ router.delete('/projects/:id', deleteProject);
 // SKILLS CRUD
 router.get('/skills', getSkills);
 router.post('/skills', createSkill);
+router.put('/skills', updateSkills);
 router.put('/skills/:id', updateSkill);
+router.delete('/skills', deleteSkill);
 router.delete('/skills/:id', deleteSkill);
 
 // EXPERIENCES CRUD
