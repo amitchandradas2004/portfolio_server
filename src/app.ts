@@ -4,6 +4,8 @@ import { env } from './config/env.config';
 import apiRouter from './routes';
 import { notFoundHandler, globalErrorHandler } from './middlewares/error.middleware';
 
+import { connectDB, isDbReady } from './config/db';
+
 const app: Application = express();
 
 // CORS configuration
@@ -33,8 +35,17 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({
     status: 'OK',
     message: 'Portfolio Server is operational',
+    dbConnected: isDbReady(),
     timestamp: new Date().toISOString(),
   });
+});
+
+// Ensure DB connection for serverless environments (e.g. Vercel)
+app.use(async (_req, _res, next) => {
+  if (!isDbReady()) {
+    await connectDB();
+  }
+  next();
 });
 
 // API routes
