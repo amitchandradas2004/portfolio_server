@@ -116,6 +116,230 @@ export const deleteHero = async (req: AuthRequest, res: Response): Promise<void>
   }
 };
 
+
+
+// ==========================================
+// ABOUT SECTION CRUD OPERATIONS
+// ==========================================
+
+export const defaultAboutData = {
+  badgeText: "About Me",
+  title: "Crafting Digital Solutions with",
+  highlightedTitle: "Passion & Precision",
+  tagline: "Turning complex ideas into scalable, high-performance web realities.",
+  showTagline: true,
+  paragraph1:
+    "Hello! I'm Amit Chandra Das, a full-stack developer passionate about building modern, scalable, and user-friendly web applications. I work with React, Next.js, TypeScript, Node.js, and MongoDB to create seamless digital experiences with clean, responsive interfaces and reliable backend systems.",
+  paragraph2:
+    "My journey into web development began with curiosity about how interactive applications work behind the scenes. Since then, I've built real-world projects, developed RESTful APIs, implemented authentication and authorization, integrated payment systems, and worked with databases to deliver functional, full-stack solutions.",
+  paragraph3:
+    "Beyond coding, I enjoy exploring modern web technologies, refining UI interactions, collaborating with other developers, and solving real-world problems through software. I value clean, maintainable code, continuous learning, and building intuitive user experiences while growing as a developer through hands-on projects and collaboration.",
+  traits: [
+    {
+      id: "clean-arch",
+      title: "Clean Architecture",
+      description: "Modularity, reusability, and maintainable codebase standards.",
+      iconKey: "check",
+      iconColor: "text-sky-500",
+      badgeBg: "bg-sky-500/10",
+    },
+    {
+      id: "user-centric",
+      title: "User-Centric Design",
+      description: "Smooth micro-interactions and pixel-perfect responsiveness.",
+      iconKey: "sparkles",
+      iconColor: "text-purple-500",
+      badgeBg: "bg-purple-500/10",
+    },
+  ],
+  showResumeButton: true,
+  resumeButtonText: "Download Resume",
+  resumeUrl: "https://drive.google.com/file/d/1HHT7oDBDbTNMTAMEi9xEOqNkb_iP8vGP/view?usp=sharing",
+  showContactButton: true,
+  contactButtonText: "Let's Talk",
+  cardRole: "Full Stack Developer",
+  cardStatus: "Open to Work",
+  cardStatusActive: true,
+  location: "Dhaka, Bangladesh",
+  timezone: "Asia/Dhaka",
+  showLiveClock: true,
+  experienceStartDate: "2024-04-01",
+  autoCountProjects: true,
+  githubUsername: "amitchandradas2004",
+  stats: [
+    {
+      id: "experience",
+      label: "Months Experience",
+      value: "6+",
+      sub: "Hands-on Building",
+      iconKey: "terminal",
+      color: "from-sky-500 to-blue-600",
+      statType: "experience",
+      useLiveGithubCommits: false,
+    },
+    {
+      id: "projects",
+      label: "Projects Built",
+      value: "10+",
+      sub: "Full-Stack & Web Apps",
+      iconKey: "code",
+      color: "from-blue-500 to-purple-600",
+      statType: "projects",
+      useLiveGithubCommits: false,
+    },
+    {
+      id: "commits",
+      label: "Git Commits",
+      value: "1300+",
+      sub: "Live GitHub Count",
+      iconKey: "git",
+      color: "from-purple-500 to-pink-600",
+      statType: "github-commits",
+      useLiveGithubCommits: true,
+    },
+    {
+      id: "quality",
+      label: "Code Quality",
+      value: "100%",
+      sub: "Clean & Maintainable",
+      iconKey: "zap",
+      color: "from-emerald-500 to-teal-600",
+      statType: "manual",
+      useLiveGithubCommits: false,
+    },
+  ],
+  currentTechs: [
+    { id: "react", name: "React", iconKey: "react", color: "text-cyan-400", enabled: true },
+    { id: "nextjs", name: "Next.js", iconKey: "next", color: "text-slate-900 dark:text-white", enabled: true },
+    { id: "typescript", name: "TypeScript", iconKey: "typescript", color: "text-blue-500", enabled: true },
+    { id: "nodejs", name: "Node.js", iconKey: "node", color: "text-emerald-500", enabled: true },
+    { id: "express", name: "Express", iconKey: "express", color: "text-slate-700 dark:text-slate-300", enabled: true },
+    { id: "mongodb", name: "MongoDB", iconKey: "mongo", color: "text-emerald-600 dark:text-emerald-400", enabled: true },
+    { id: "tailwind", name: "Tailwind CSS", iconKey: "tailwind", color: "text-sky-400", enabled: true },
+    { id: "git", name: "Git", iconKey: "git", color: "text-orange-500", enabled: true },
+  ],
+  learningFocus: [
+    {
+      id: "ai-llms",
+      title: "AI Integration & LLMs",
+      desc: "Integrating intelligent agents & API workflows into web apps.",
+      iconKey: "brain",
+    },
+    {
+      id: "cloud-microservices",
+      title: "Cloud & Microservices",
+      desc: "Scalable serverless functions and modern container deployment.",
+      iconKey: "rocket",
+    },
+    {
+      id: "web-performance",
+      title: "Web Performance",
+      desc: "Optimizing Core Web Vitals, SSR, and rendering efficiency.",
+      iconKey: "sparkles",
+    },
+  ],
+};
+
+export const getAbout = async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (!isDbReady()) {
+      res.status(200).json(defaultAboutData);
+      return;
+    }
+    const db = getDb();
+    let aboutDoc = await db.collection("about").findOne({});
+
+    let projectCount = 0;
+    try {
+      projectCount = await db.collection("projects").countDocuments({});
+    } catch (e) {}
+
+    const baseData = aboutDoc ? { ...defaultAboutData, ...aboutDoc } : defaultAboutData;
+
+    if (baseData.autoCountProjects && projectCount > 0 && Array.isArray(baseData.stats)) {
+      baseData.stats = baseData.stats.map((s: any) => {
+        if (s.id === "projects" || s.statType === "projects") {
+          return { ...s, value: projectCount + "+" };
+        }
+        return s;
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "About section retrieved successfully from Express backend",
+      data: baseData,
+      ...baseData,
+    });
+  } catch (error: any) {
+    res.status(200).json(defaultAboutData);
+  }
+};
+
+export const updateAbout = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    if (!isDbReady()) {
+      res.status(500).json({ success: false, error: "Database connection not ready" });
+      return;
+    }
+    const body = req.body;
+    delete body._id;
+    const db = getDb();
+    const updateDoc = {
+      ...body,
+      updatedAt: new Date(),
+    };
+
+    await db.collection("about").updateOne({}, { $set: updateDoc }, { upsert: true });
+
+    res.status(200).json({
+      success: true,
+      message: "About section updated successfully in Express backend",
+      data: updateDoc,
+      about: updateDoc,
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error?.message || "Failed to update About section" });
+  }
+};
+
+export const deleteAbout = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    if (!isDbReady()) {
+      res.status(500).json({ success: false, error: "Database connection not ready" });
+      return;
+    }
+    const { reset } = req.query;
+    const db = getDb();
+
+    if (reset === "true" || req.query.reset === "true") {
+      await db.collection("about").updateOne(
+        {},
+        { $set: { ...defaultAboutData, updatedAt: new Date() } },
+        { upsert: true }
+      );
+      res.status(200).json({
+        success: true,
+        message: "About section reset to default in Express backend",
+        data: defaultAboutData,
+        about: defaultAboutData,
+      });
+      return;
+    }
+
+    await db.collection("about").deleteMany({});
+    res.status(200).json({
+      success: true,
+      message: "About section deleted in Express backend",
+      data: defaultAboutData,
+      about: defaultAboutData,
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error?.message || "Failed to reset About section" });
+  }
+};
+
+
 // ==========================================
 // 2. PROJECTS SECTION CRUD OPERATIONS
 // ==========================================
