@@ -3,6 +3,9 @@ import {
   getHero,
   updateHero,
   deleteHero,
+  getAbout,
+  updateAbout,
+  deleteAbout,
   getProjects,
   createProject,
   updateProject,
@@ -31,6 +34,12 @@ router.get('/hero', getHero);
 router.put('/hero', updateHero);
 router.post('/hero', updateHero);
 router.delete('/hero', deleteHero);
+
+// ABOUT SECTION CRUD
+router.get('/about', getAbout);
+router.put('/about', updateAbout);
+router.post('/about', updateAbout);
+router.delete('/about', deleteAbout);
 
 // PROJECTS CRUD
 router.get('/projects', getProjects);
