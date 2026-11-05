@@ -19,3 +19,12 @@ logs/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Environment variables & secrets (added by GitHub Guardian)
+.env.*
+*.env
+!.env.example
+!.env.sample
+.envrc
+.venv/
+venv/
